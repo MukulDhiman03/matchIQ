@@ -1,14 +1,18 @@
 const express = require("express");
 const app = express();
 
-app.get("/user/:userId", (req, res) => {
-  console.log(req.params);
-  res.send({ firstName: "Mukul", lastName: "Dhiman" });
-});
-app.get("/user", (req, res) => {
-  console.log(req.query);
-  res.send({ firstName: "Mukul", lastName: "Dhiman" });
-});
+app.use(
+  "/user",
+  (req, res, next) => {
+    // route handler
+    console.log("Handling 1........");
+    next();
+  },
+  (req, res) => {
+    res.send("Hello");
+    console.log("Handling 2........");
+  }
+);
 
 app.listen(3000, () => {
   console.log("Listening");
