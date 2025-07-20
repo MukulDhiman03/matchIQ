@@ -3,20 +3,62 @@ const connectDB = require("./config/database");
 const app = express();
 const User = require("./models/user");
 
+app.use(express.json());
+
 app.post("/signup", async (req, res) => {
   // instance of user model
-  const user = new User({
-    firstName: "Virat",
-    lastName: "Kohli",
-    emailId: "Viratkohli@gmail.com",
-    password: "password@1234",
-  });
-
+  const user = new User(req.body);
   try {
     await user.save();
     res.send("Added to database");
   } catch (err) {
     res.status(400).send("Error saving the user:" + err.message);
+  }
+});
+
+// get a single user
+app.get("/user", async (req, res) => {
+  const userEmail = req.body.emailId;
+  try {
+    const user = await User.findOne({ emailId: userEmail });
+    if (!user) {
+      res.status(404).send("User not found");
+    } else {
+      res.send(user);
+    }
+  } catch (err) {
+    res.status(400).send("Something went wrong" + err.message);
+  }
+});
+
+// feed api - Get  /fedd get all the users from database
+app.get("/feed", async (req, res) => {
+  try {
+    const users = await User.find({});
+    res.send(users);
+  } catch (err) {
+    res.status(400).send("Something went wrong" + err.message);
+  }
+});
+
+app.delete("/user", async (req, res) => {
+  const userId = req.body.userId;
+  try {
+    const user = await User.findByIdAndDelete({ _id: userId });
+    res.send("USer deleted successfully");
+  } catch (err) {
+    res.status(404).send("Something went wrong: " + err.message);
+  }
+});
+
+app.patch("/user", async (req, res) => {
+  const userId = req.body.userId;
+  const data = req.body;
+  try {
+    await User.findByIdAndUpdate({ _id: userId }, data);
+    res.send("User updated");
+  } catch (err) {
+    res.status(404).send("Something went wrong: " + err.message);
   }
 });
 
