@@ -38,21 +38,13 @@ app.post("/signup", async (req, res) => {
 app.post("/login", async (req, res) => {
   try {
     const { emailId, password } = req.body;
-
     const user = await User.findOne({ emailId: emailId });
     if (!user) {
       throw new Error("Invalid credentials");
     }
-
-    // write a check for email and password validation
-    const isPasswordValid = await bcrypt.compare(password, user.password);
+    const isPasswordValid = await user.validatePassword(password);
     if (isPasswordValid) {
-      // create a jwt token
-
-      // add token to cookie and send response back to user
-      let token = await jwt.sign({ _id: user._id }, "MATCHIQ@790", {
-        expiresIn: "1d",
-      });
+      let token = await user.getJWT();
       console.log(token);
 
       res.cookie("token", token, {
