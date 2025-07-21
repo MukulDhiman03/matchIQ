@@ -4,8 +4,11 @@ const app = express();
 const User = require("./models/user");
 const { validateSignUpData } = require("./utils/validation");
 const bcrypt = require("bcrypt");
+const cookieParser = require("cookie-parser");
+const jwt = require("jsonwebtoken");
 
 app.use(express.json());
+app.use(cookieParser());
 
 app.post("/signup", async (req, res) => {
   try {
@@ -43,6 +46,13 @@ app.post("/login", async (req, res) => {
     // write a check for email and password validation
     const isPasswordValid = await bcrypt.compare(password, user.password);
     if (isPasswordValid) {
+      // create a jwt token
+
+      // add token to cookie and send response back to user
+      let token = await jwt.sign({ _id: user._id }, "MATCHIQ@790");
+      console.log(token);
+
+      res.cookie("token", token);
       res.send("User login successfull!!");
     } else {
       throw new Error("Password not correct");
@@ -64,6 +74,26 @@ app.get("/user", async (req, res) => {
     }
   } catch (err) {
     res.status(400).send("Something went wrong" + err.message);
+  }
+});
+
+app.get("/profile", async (req, res) => {
+  try {
+    const cookie = req.cookies;
+    const { token } = cookie;
+    if (!token) {
+      throw new Error("Invalid credentials!");
+    }
+    // validate the token
+    const decodedMessage = await jwt.verify(token, "MATCHIQ@790");
+    const { _id } = decodedMessage;
+    const user = await User.findById(_id);
+    if (!user) {
+      throw new Error("User not present!");
+    }
+    res.send(user);
+  } catch (err) {
+    res.status(404).send(err.message);
   }
 });
 
