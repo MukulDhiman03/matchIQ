@@ -9,6 +9,7 @@ const userSchema = new Schema(
     firstName: {
       type: String,
       required: true,
+      index: true,
     },
     lastName: {
       type: String,
