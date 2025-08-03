@@ -4,15 +4,6 @@ const userRouter = express.Router();
 const { userAuth } = require("../middlewares/auth");
 const ConnectionRequest = require("../models/connectionRequest");
 const User = require("../models/user");
-const USER_SAFE_DATA = [
-  "firstName",
-  "lastName",
-  "photoUrl",
-  "about",
-  "skills",
-  "age",
-  "gener",
-];
 
 // get all the pending connection request for the loggedIn user
 userRouter.get("/user/requests/received", userAuth, async (req, res) => {
@@ -49,8 +40,24 @@ userRouter.get("/user/connections", userAuth, async (req, res) => {
         },
       ],
     })
-      .populate("fromUserId", USER_SAFE_DATA)
-      .populate("toUserId", USER_SAFE_DATA);
+      .populate("fromUserId", [
+        "firstName",
+        "lastName",
+        "photoUrl",
+        "about",
+        "skills",
+        "age",
+        "gener",
+      ])
+      .populate("toUserId", [
+        "firstName",
+        "lastName",
+        "photoUrl",
+        "about",
+        "skills",
+        "age",
+        "gener",
+      ]);
 
     const data = connectionRequest.map((row) => {
       if (row.fromUserId._id.toString() === loggedInUser._id.toString()) {
@@ -70,6 +77,10 @@ userRouter.get("/user/connections", userAuth, async (req, res) => {
 userRouter.get("/feed", userAuth, async (req, res) => {
   try {
     const loggedInUser = req.user;
+    const page = parseInt(req.query.page) || 1;
+    let limit = parseInt(req.query.limit) || 10;
+    limit = limit > 50 ? 50 : limit;
+    const skip = (page - 1) * limit;
 
     // find all connection request(sent + received)
     const connectionRequest = await ConnectionRequest.find({
@@ -90,7 +101,18 @@ userRouter.get("/feed", userAuth, async (req, res) => {
         { _id: { $nin: Array.from(hideUsersFromFeed) } },
         { _id: { $ne: loggedInUser._id } },
       ],
-    }).select(USER_SAFE_DATA);
+    })
+      .select([
+        "firstName",
+        "lastName",
+        "photoUrl",
+        "about",
+        "skills",
+        "age",
+        "gener",
+      ])
+      .skip(skip)
+      .limit(limit);
 
     res.send({ data: users });
   } catch (err) {
