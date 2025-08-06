@@ -10,46 +10,36 @@ requestRouter.post(
   userAuth,
   async (req, res) => {
     try {
+      const user = req.user;
       const fromUserId = req.user._id;
       const toUserId = req.params.toUserId;
       const status = req.params.status;
-      // console.log(fromUserId);
-      // console.log(toUserId);
 
-      if (fromUserId.equals(toUserId)) {
+      //toUser exist check
+      const toUser = await User.findById(toUserId);
+      if (!toUser) {
         return res.status(400).json({
-          message: "Cannot send connection request to yourself.",
+          message: "User not found",
+          success: false,
         });
       }
 
-      const allowedStatus = ["ignored", "interested"];
-      if (!allowedStatus.includes(status)) {
-        return res.status(400).json({
-          message: "Invalid status type: " + status,
-        });
+      //Status Check
+      const allowedStatuses = ["ignored", "interested"];
+      if (!allowedStatuses.includes(status)) {
+        throw new Error("Invalid status type:" + status);
       }
 
-      const ifToUserExists = await User.findById(toUserId);
-
-      if (!ifToUserExists) {
-        return res.status(400).json({
-          message: "User does not exists: ",
-        });
-      }
-
-      //  if there is an existing connection request
-
-      const existingCOnnectionRequest = await connectionRequestModel.findOne({
+      //Existing user exist check
+      const existingConnectionRequest = await connectionRequestModel.findOne({
         $or: [
-          { fromUserId: fromUserId, toUserId: toUserId },
-          { fromUserId: toUserId },
+          { fromUserId, toUserId },
+          { fromUserId: toUserId, toUserId: fromUserId },
         ],
       });
-
-      if (existingCOnnectionRequest) {
-        return res.status(400).json({
-          message: "Request already sent.",
-        });
+      console.log(existingConnectionRequest);
+      if (existingConnectionRequest) {
+        throw new Error("Already sent the connection request before");
       }
 
       const connectionRequest = new connectionRequestModel({
@@ -59,23 +49,15 @@ requestRouter.post(
       });
 
       const data = await connectionRequest.save();
-      res.json({
-        message:
-          status === "interested"
-            ? req.user.firstName +
-              " is " +
-              status +
-              " in " +
-              ifToUserExists.firstName
-            : req.user.firstName +
-              " " +
-              status +
-              " " +
-              ifToUserExists.firstName,
+      res.status(200).json({
+        message: user.firstName + " is " + status + " in " + toUser.firstName,
         data,
+        success: true,
       });
-    } catch (err) {
-      res.status(400).send(err.message);
+    } catch (error) {
+      res.status(400).json({
+        message: error.message,
+      });
     }
   }
 );
